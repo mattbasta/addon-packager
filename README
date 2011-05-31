@@ -1,0 +1,5 @@
+Add-on Packager
+
+A super-simple way of generating add-ons, conveniently bundled into its own git
+repo for easy consumption.
+
