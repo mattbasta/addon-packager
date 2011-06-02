@@ -4,7 +4,7 @@ from xml.sax.saxutils import escape
 
 RESOURCES_PATH = os.path.join(os.path.dirname(__file__), "resources")
 
-def packager(data, xpi_path):
+def packager(data, xpi_path, features):
     """
     Package an add-on from input data. The resulting package will be saved as
     xpi_path.
