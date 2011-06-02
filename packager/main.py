@@ -1,4 +1,5 @@
 import os
+from xml.sax.saxutils import escape
 
 
 RESOURCES_PATH = os.path.join(os.path.dirname(__file__), "resources")
@@ -38,7 +39,20 @@ def packager(data, xpi_path):
     xpi = XPIManager(xpi_path, mode="w")
 
     xpi.write("install.rdf", build_installrdf(data))
-    _write_resource("defaults/preferences/prefs.js", xpi)
+    _write_resource("chrome.manifest", xpi, data)
+    _write_resource("defaults/preferences/prefs.js", xpi, data)
+    _write_resource("chrome/content/overlay.js", xpi, data)
+    _write_resource("chrome/skin/overlay.css", xpi, data)
+    _write_resource("chrome/locale/en-US/overlay.dtd", xpi, data)
+    _write_resource("chrome/locale/en-US/overlay.properties", xpi, data)
+
+    if "about" in features:
+        _write_resource("chrome/content/about.xul", xpi, data)
+        _write_resource("chrome/locale/en-US/about.dtd", xpi)
+
+    if "options" in features:
+        _write_resource("chrome/content/options.xul", xpi, data)
+        _write_resource("chrome/locale/en-US/options.dtd", xpi)
 
     xpi.zf.close()
     return xpi_path
@@ -61,7 +75,8 @@ def _get_resource(filename, data=None):
 
     if data:
         for key in data.keys():
-            output = output.replace("%%%s%%" % key, data[key])
+            if key in output:
+                output = output.replace("%%%s%%" % key, data[key])
 
     resource.close()
     return output
@@ -80,11 +95,12 @@ def build_installrdf(data):
     # Build the install.rdf file
 
     rdf_description = (
-            ("<em:description>%s</em:description>" % data["description"]) if
+            ("<em:description>%s</em:description>" %
+                 escape(data["description"])) if
             data["description"] else "")
 
     rdf_contributors = "\n".join([
-            "<em:contributor>%s</em:contributor>" % c.strip() for
+            "<em:contributor>%s</em:contributor>" % escape(c.strip()) for
             c in
             data["contributors"].split("\n") if
             c])
@@ -110,15 +126,42 @@ def build_installrdf(data):
     #         data["platforms"] if
     #         (p in platform_ref)])
 
+    rdf_targetapplications = []
+    for app in data["targetapplications"]:
+        rdf_targetapplications.append("""
+        <em:targetApplication>
+        <Description>
+            <em:id>%s</em:id>
+            <em:minVersion>%s</em:minVersion>
+            <em:maxVersion>%s</em:maxVersion>
+        </Description>
+        </em:targetApplication>
+        """ % map(escape, (app["guid"], app["min_ver"], app["max_ver"])))
+
+    rdf_targetapplications = "\n".join(rdf_targetapplications)
 
     install_rdf = _get_resource("install.rdf")
     return install_rdf % (
-            data["uid"],
-            data["version"],
-            data["name"],
+            escape(data["uid"]),
+            escape(data["version"]),
+            escape(data["name"]),
             rdf_description,
-            data["author_name"],
+            escape(data["author_name"]),
             rdf_contributors,
             "", # rdf_targetplatforms,
             rdf_targetapplications)
+
+
+def build_chrome_manifest(data):
+
+    chrome_manifest = [_get_resource("chrome.manifest", data)]
+    if any(app["guid"] == "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}" for
+           app in data["targetapplications"]):
+        chrome_manifest.append("/n")
+        chrome_manifest.append(("overlay\t"
+                                "chrome://browser/content/browser.xul\t"
+                                "chrome://%s/content/ff-overlay.xul") %
+                                   data["slug"])
+
+    return "\n".join(chrome_manifest)
 
