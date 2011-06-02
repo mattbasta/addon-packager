@@ -136,7 +136,9 @@ def build_installrdf(data):
             <em:maxVersion>%s</em:maxVersion>
         </Description>
         </em:targetApplication>
-        """ % map(escape, (app["guid"], app["min_ver"], app["max_ver"])))
+        """ % (escape(app["guid"]),
+               escape(app["min_ver"]),
+               escape(app["max_ver"])))
 
     rdf_targetapplications = "\n".join(rdf_targetapplications)
 
