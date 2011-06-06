@@ -91,7 +91,7 @@ def _get_resource(filename, data=None):
     output = _apply_data(resource.read(), data)
 
     resource.close()
-    return output
+    return output.strip()
 
 
 def _apply_data(blob, data=None):
@@ -99,8 +99,9 @@ def _apply_data(blob, data=None):
 
     if data:
         for key in data:
-            if key in blob:
-                blob = blob.replace("%%%s%%" % key, data[key])
+            template_key = "%%%s%%" % key
+            if template_key in blob:
+                blob = blob.replace(template_key, data[key])
 
     return blob
 
