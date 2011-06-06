@@ -39,7 +39,8 @@ def packager(data, xpi_path, features):
     xpi = XPIManager(xpi_path, mode="w")
 
     xpi.write("install.rdf", build_installrdf(data))
-    _write_resource("chrome.manifest", xpi, data)
+    xpi.write("chrome.manifest",
+              build_chrome_manifest(data, features, is_firefox))
     _write_resource("defaults/preferences/prefs.js", xpi, data)
     _write_resource("chrome/content/overlay.js", xpi, data)
     _write_resource("chrome/skin/overlay.css", xpi, data)
@@ -53,6 +54,22 @@ def packager(data, xpi_path, features):
     if "options" in features:
         _write_resource("chrome/content/options.xul", xpi, data)
         _write_resource("chrome/locale/en-US/options.dtd", xpi)
+
+    if "button" in features:
+        _write_resource("chrome/skin/toolbar-button.png", xpi)
+
+    if "sidebar" in features:
+        _write_resource("chrome/content/ff-sidebar.js", xpi)
+        _write_resource("chrome/content/ff-sidebar.xul", xpi)
+
+    # Multiple features require ff-overlay.xul
+    if any(feature in features for feature in ("button",
+                                               "contextmenu",
+                                               "mainmenu",
+                                               "sidebar")):
+        xpi.write("chrome/content/ff-overlay.xul",
+                  _build_ffoverlay_xul(data, features, is_firefox))
+        _write_resource("chrome/content/ff-overlay.js", xpi, data)
 
     xpi.zf.close()
     return xpi_path
@@ -71,15 +88,21 @@ def _get_resource(filename, data=None):
     %key% from the contents of the file) with the value from data.
     """
     resource = open(_get_path(filename))
-    output = resource.read()
-
-    if data:
-        for key in data.keys():
-            if key in output:
-                output = output.replace("%%%s%%" % key, data[key])
+    output = _apply_data(resource.read(), data)
 
     resource.close()
     return output
+
+
+def _apply_data(blob, data=None):
+    """Apply a dict of variables to the file as a basic template."""
+
+    if data:
+        for key in data:
+            if key in blob:
+                blob = blob.replace("%%%s%%" % key, data[key])
+
+    return blob
 
 
 def _write_resource(filename, xpi, data=None):
@@ -154,16 +177,81 @@ def build_installrdf(data):
             rdf_targetapplications)
 
 
-def build_chrome_manifest(data):
+def build_chrome_manifest(data, features, is_firefox=False):
 
     chrome_manifest = [_get_resource("chrome.manifest", data)]
-    if any(app["guid"] == "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}" for
-           app in data["targetapplications"]):
-        chrome_manifest.append("/n")
+    if is_firefox:
         chrome_manifest.append(("overlay\t"
                                 "chrome://browser/content/browser.xul\t"
                                 "chrome://%s/content/ff-overlay.xul") %
                                    data["slug"])
 
+    if "button" in features:
+        chrome_manifest.append(
+                ("overlay\t"
+                 "chrome://global/content/customizeToolbar.xul\t"
+                 "chrome://%s/skin/overlay.css") % data["slug"])
+
+
     return "\n".join(chrome_manifest)
+
+
+def build_ffoverlay_xul(data, features, is_firefox=False):
+    """Build the ff-overlay.xul file."""
+
+    ffoverlay = _get_resource("chrome/content/ff-overlay.xul", data=data)
+
+    extra = []
+    if "button" in features:
+        extra.append(_apply_data("""
+        <toolbarpalette id="BrowserToolbarPalette">
+            <toolbarbutton id="%slug%-toolbar-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
+                label="&%slug%ToolbarButton.label;" tooltiptext="&%slug%ToolbarButton.tooltip;"
+                oncommand="%slug%.onToolbarButtonCommand()"/>
+        </toolbarpalette>""", data=data))
+
+    if "contextmenu" in features:
+        extra.append(_apply_data("""
+        <popup id="contentAreaContextMenu">
+            <menuitem id="context-%slug%" label="&%slug%Context.label;"
+                accesskey="&%slug%Context.accesskey;"
+                insertafter="context-stop"
+                oncommand="%slug%.onMenuItemCommand(event)"/>
+        </popup>""", data=data))
+
+    if "mainmenu" in features:
+        extra.append(_apply_data("""
+        <menupopup id="menu_ToolsPopup">
+            <menuitem id="%slug%-hello" label="&%slug%.label;"
+                oncommand="%slug%.onMenuItemCommand(event);"/>
+        </menupopup>
+        """, data=data))
+
+    if "sidebar" in features:
+        extra.append(_apply_data("""
+        <menupopup id="viewSidebarMenu">
+            <menuitem observes="viewSidebar_%slug%" />
+        </menupopup>
+        <broadcasterset id="mainBroadcasterSet">
+            <broadcaster id="viewSidebar_%slug%"
+                 label="&%slug%Sidebar.label;"
+                 autoCheck="false"
+                 type="checkbox"
+                 group="sidebar"
+                 sidebarurl="chrome://%slug%/content/ff-sidebar.xul"
+                 sidebartitle="&%slug%Sidebar.label;"
+                 oncommand="toggleSidebar('viewSidebar_%slug%');" />
+        </broadcasterset>
+        """, data=data))
+
+    if "toolbar" in features:
+        extra.append(_apply_data("""
+        <toolbox id="navigator-toolbox">
+            <toolbar class="chromeclass-toolbar" toolbarname="&%slug%Toolbar.name;" customizable="true" id="%slug%-toolbar">
+                <label value="&%slug%Toolbar.label;"/>
+            </toolbar>
+        </toolbox>
+        """, data=data))
+
+    return ffoverlay % "\n".join(extra)
 

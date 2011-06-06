@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="chrome://%slug%/skin/overlay.css" type="text/css"?>
+<!DOCTYPE overlay SYSTEM "chrome://%slug%/locale/overlay.dtd">
+<overlay id="%slug%-overlay" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <script src="overlay.js"/>
+  <script src="ff-overlay.js"/>
+
+  <stringbundleset id="stringbundleset">
+    <stringbundle id="%slug%-strings" src="chrome://%slug%/locale/overlay.properties"/>
+  </stringbundleset>
+
+%s <!-- Extra -->
+
+</overlay>
