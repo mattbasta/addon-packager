@@ -1,8 +1,8 @@
-<!ENTITY %slug%.label "Your localized menuitem">
-<!ENTITY %slug%Context.label "Your Menuitem">
-<!ENTITY %slug%Context.accesskey "Y">
-<!ENTITY %slug%ToolbarButton.label "Your Toolbar Button">
-<!ENTITY %slug%ToolbarButton.tooltip "This is your toolbar button!">
-<!ENTITY %slug%Sidebar.label "Your Sidebar">
-<!ENTITY %slug%Toolbar.name  "example">
-<!ENTITY %slug%Toolbar.label "This is an example toolbar. You can hide it under View &gt; toolbars &gt; &{{ $package }}Toolbar.name;">
+<!ENTITY {slug}.label "Your localized menuitem">
+<!ENTITY {slug}Context.label "Your Menuitem">
+<!ENTITY {slug}Context.accesskey "Y">
+<!ENTITY {slug}ToolbarButton.label "Your Toolbar Button">
+<!ENTITY {slug}ToolbarButton.tooltip "This is your toolbar button!">
+<!ENTITY {slug}Sidebar.label "Your Sidebar">
+<!ENTITY {slug}Toolbar.name  "example">
+<!ENTITY {slug}Toolbar.label "This is an example toolbar. You can hide it under View &gt; toolbars &gt; &{slug}Toolbar.name;">

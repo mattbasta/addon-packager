@@ -15,10 +15,8 @@ def test_get_resource():
     rpath = p.RESOURCES_PATH
     p.RESOURCES_PATH = "tests/resources"
 
-    nose.tools.eq_(p._get_resource("test.txt"), "%foo%")
-    nose.tools.eq_(p._get_resource("test.txt",
-                                   {"foo": "bar"}),
-                   "bar")
+    nose.tools.eq_(p._get_resource("test.txt"), "{foo}")
+    nose.tools.eq_(p._get_resource("test.txt", {"foo": "bar"}), "bar")
 
     p.RESOURCES_PATH = rpath
 

@@ -1,8 +1,8 @@
-var %slug% = {
+var %(slug)s = {
   onLoad: function() {
     // initialization code
     this.initialized = true;
-    this.strings = document.getElementById("%slug%-strings");
+    this.strings = document.getElementById("%(slug)s-strings");
   },
 
   onMenuItemCommand: function(e) {
@@ -14,8 +14,8 @@ var %slug% = {
 
   onToolbarButtonCommand: function(e) {
     // just reuse the function above.  you can change this, obviously!
-    %slug%.onMenuItemCommand(e);
+    %(slug)s.onMenuItemCommand(e);
   }
 };
 
-window.addEventListener("load", function () { %slug%.onLoad(); }, false);
+window.addEventListener("load", function () { %(slug)s.onLoad(); }, false);

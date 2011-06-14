@@ -4,17 +4,19 @@
     <Description about="urn:mozilla:install-manifest">
 
     <em:type>2</em:type> <!-- 2 : Extension -->
-    <em:id>%s</em:id>
-    <em:version>%s</em:version>
-    <em:name>%s</em:name>
+    <em:id>{id}</em:id>
+    <em:version>{version}</em:version>
+    <em:name>{name}</em:name>
 
-    %s <!-- Description -->
+    {description} <!-- Description -->
 
-    <em:author>%s</em:author>
-    %s <!-- Contributors -->
+    <em:author>{author_name}</em:author>
+    {contributors} <!-- Contributors -->
 
-    %s <!-- targetPlatform -->
-    %s <!-- targetApplication -->
+    {applications} <!-- targetApplication -->
+
+    {about_dialog} <!-- About page -->
+    {options_dialog} <!-- Options page -->
 
     </Description>
 </RDF>

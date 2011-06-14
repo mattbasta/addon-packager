@@ -1,22 +1,22 @@
 /* This is just an example.  You shouldn't do this. */
-#%slug%-hello
+#%(slug)s-hello
 {
   color: red ! important;
 }
-#%slug%-toolbar-button
+#%(slug)s-toolbar-button
 {
-  list-style-image: url("chrome://%slug%/skin/toolbar-button.png");
+  list-style-image: url("chrome://%(slug)s/skin/toolbar-button.png");
   -moz-image-region: rect(0px 24px 24px 0px);
 }
-#%slug%-toolbar-button:hover
+#%(slug)s-toolbar-button:hover
 {
   -moz-image-region: rect(24px 24px 48px  0px);
 }
-[iconsize="small"] #%slug%-toolbar-button
+[iconsize="small"] #%(slug)s-toolbar-button
 {
   -moz-image-region: rect( 0px 40px 16px 24px);
 }
-[iconsize="small"] #%slug%-toolbar-button:hover
+[iconsize="small"] #%(slug)s-toolbar-button:hover
 {
   -moz-image-region: rect(24px 40px 40px 24px);
 }

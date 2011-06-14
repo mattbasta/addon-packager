@@ -3,9 +3,9 @@
 
 // These are here as an example only. Please remove them or rename them to
 // something useful.
-pref("extensions.%slug%.boolpref", false);
-pref("extensions.%slug%.intpref", 0);
-pref("extensions.%slug%.stringpref", "A string");
+pref("extensions.%(slug)s.boolpref", false);
+pref("extensions.%(slug)s.intpref", 0);
+pref("extensions.%(slug)s.stringpref", "A string");
 
 // https://developer.mozilla.org/en/Localizing_extension_descriptions
-pref("extensions.foo@bar.com.description", "chrome://%slug%/locale/overlay.properties");
+pref("extensions.foo@bar.com.description", "chrome://%(slug)s/locale/overlay.properties");
