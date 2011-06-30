@@ -1,14 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet href="chrome://{slug}/skin/overlay.css" type="text/css"?>
-<!DOCTYPE overlay SYSTEM "chrome://{slug}/locale/overlay.dtd">
-<overlay id="{slug}-overlay" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+<?xml-stylesheet href="chrome://{{ slug }}/skin/overlay.css" type="text/css"?>
+<!DOCTYPE overlay SYSTEM "chrome://{{ slug }}/locale/overlay.dtd">
+<overlay id="{{ slug }}-overlay" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
   <script src="overlay.js"/>
   <script src="ff-overlay.js"/>
 
   <stringbundleset id="stringbundleset">
-    <stringbundle id="{slug}-strings" src="chrome://{slug}/locale/overlay.properties"/>
+    <stringbundle id="{{ slug }}-strings" src="chrome://{{ slug }}/locale/overlay.properties"/>
   </stringbundleset>
 
-  {extra} <!-- Extra -->
+  {% if 'toolbar_button' in features %}
+  <toolbarpalette id="BrowserToolbarPalette">
+    <toolbarbutton id="{{ slug }}-toolbar-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
+                   label="&{{ slug }}ToolbarButton.label;" tooltiptext="&{{ slug }}ToolbarButton.tooltip;"
+                   oncommand="{{ slug }}.onToolbarButtonCommand()"/>
+  </toolbarpalette>
+  {% endif %}
+  {% if 'context_menu_command' in features %}
+  <popup id="contentAreaContextMenu">
+    <menuitem id="context-{{ slug }}" label="&{{ slug }}Context.label;"
+              accesskey="&{{ slug }}Context.accesskey;"
+              insertafter="context-stop"
+              oncommand="{{ slug }}.onMenuItemCommand(event)"/>
+  </popup>
+  {% endif %}
+  {% if 'main_menu_command' in features %}
+  <menupopup id="menu_ToolsPopup">
+    <menuitem id="{{ slug }}-hello" label="&{{ slug }}.label;"
+              oncommand="{{ slug }}.onMenuItemCommand(event);"/>
+  </menupopup>
+  {% endif %}
+  {% if 'sidebar_support' in features %}
+  <menupopup id="viewSidebarMenu">
+    <menuitem observes="viewSidebar_{{ slug }}" />
+  </menupopup>
+  <broadcasterset id="mainBroadcasterSet">
+    <broadcaster id="viewSidebar_{{ slug }}"
+                 label="&{{ slug }}Sidebar.label;"
+                 autoCheck="false"
+                 type="checkbox"
+                 group="sidebar"
+                 sidebarurl="chrome://{{ slug }}/content/ff-sidebar.xul"
+                 sidebartitle="&{{ slug }}Sidebar.label;"
+                 oncommand="toggleSidebar('viewSidebar_{{ slug }}');" />
+  </broadcasterset>
+  {% endif %}
+  {% if 'toolbar' in features %}
+  <toolbox id="navigator-toolbox">
+    <toolbar class="chromeclass-toolbar" toolbarname="&{{ slug }}Toolbar.name;" customizable="true" id="{{ slug }}-toolbar">
+      <label value="&{{ slug }}Toolbar.label;"/>
+    </toolbar>
+  </toolbox>
+  {% endif %}
 
 </overlay>

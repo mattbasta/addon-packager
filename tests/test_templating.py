@@ -19,6 +19,7 @@ def test_apply_data():
     nose.tools.eq_(p._apply_data("i {foo} at {bar}", "foo.xul", data),
                    "i test at mozilla")
 
+
 def test_apply_js_data():
     """Test that data gets applied properly for JS files."""
 

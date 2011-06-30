@@ -3,8 +3,12 @@ import os
 import uuid
 from xml.sax.saxutils import escape
 
+from jinja2 import Environment, FunctionLoader
+
 
 RESOURCES_PATH = os.path.join(os.path.dirname(__file__), 'resources')
+FIREFOX_GUID = '{ec8030f7-c20a-464f-9b0e-13a3a9e97384}'
+
 
 def main():
     parser = argparse.ArgumentParser('Mozilla Add-on Packager')
@@ -33,11 +37,11 @@ def main():
     parser.add_argument('--contributors',
                         required=False,
                         help='A comma-delimited list of contributor names.')
-    parser.add_argument(
-            '--targetapps',
-            required=True,
-            help='A semicolon-delimited list of target application GUIDs, min, '
-                 'and max versions (separated by commas).')
+    parser.add_argument('--targetapps',
+                        required=True,
+                        help='A semicolon-delimited list of target '
+                             'application GUIDs, min, and max versions '
+                             '(separated by commas).')
 
     args = parser.parse_args()
 
@@ -54,8 +58,8 @@ def main():
               'description': args.description,
               'author_name': args.author_name,
               'contributors': '\n'.join(args.contributors.split(',')) if
-                                  args.contributors else "",
-              'targetapplications': parse_targetapps(args.targetapps),
+                                  args.contributors else '',
+              'targetapplications': list(parse_targetapps(args.targetapps)),
               'uuid': uuid.uuid4().hex,
               'slug': _slugify(args.name)},
              xpi_path=args.output_path,
@@ -66,7 +70,7 @@ def _slugify(value):
     """Return a simple slugified value."""
     value = value.lower().strip()
     value = value.replace(' ', '_')
-    return "".join(c for c in value if c.isalnum() or c == '_')
+    return ''.join(c for c in value if c.isalnum() or c == '_')
 
 
 def packager(data, xpi_path, features):
@@ -102,9 +106,8 @@ def packager(data, xpi_path, features):
     from validator.xpi import XPIManager
     xpi = XPIManager(xpi_path, mode='w')
 
-    is_firefox = any(
-            app['guid'] == '{ec8030f7-c20a-464f-9b0e-13a3a9e97384}' for
-            app in data['targetapplications'])
+    is_firefox = any(app['guid'] == FIREFOX_GUID for
+                     app in data['targetapplications'])
 
     xpi.write('install.rdf', build_installrdf(data, features))
     xpi.write('chrome.manifest',
@@ -131,7 +134,8 @@ def packager(data, xpi_path, features):
         _write_resource('chrome/content/ff-sidebar.xul', xpi, data)
 
     # Multiple features require ff-overlay.xul
-    if any(feature in features for feature in ('toolbar_button',
+    if any(feature in features for feature in ('toolbar',
+                                               'toolbar_button',
                                                'context_menu_command',
                                                'main_menu_command',
                                                'sidebar_support')):
@@ -166,7 +170,7 @@ def _apply_data(blob, filename, data=None):
     if data:
         # JS files are incompatible with .format() because of the curly
         # braces. Instead, named string formatting is used (%(foo)s)
-        if not filename.endswith((".js", ".css")):
+        if not filename.endswith(('.js', '.css')):
             blob = blob.format(**data)
         else:
             blob = blob % data
@@ -184,56 +188,22 @@ def _write_resource(filename, xpi, data=None):
 
 def build_installrdf(data, features):
 
-    if data['description']:
-        rdf_description = ('<em:description>%s</em:description>' %
-                 escape(data['description']))
-    else:
-        rdf_description = ''
+    template = JINJA_ENV.get_template('install.rdf')
 
-    contributors = data['contributors'].split('\n')
-    rdf_contributors = '\n'.join(
-            '<em:contributor>%s</em:contributor>' % escape(c.strip()) for
-            c in contributors if c.strip())
-
-    rdf_targetapplications = []
-    for app in data['targetapplications']:
-        rdf_targetapplications.append("""
-        <em:targetApplication>
-        <Description>
-            <em:id>{id}</em:id>
-            <em:minVersion>{min}</em:minVersion>
-            <em:maxVersion>{max}</em:maxVersion>
-        </Description>
-        </em:targetApplication>
-        """.format(id=app['guid'],
-                   min=escape(app['min_ver']),
-                   max=escape(app['max_ver'])))
-
-    rdf_targetapplications = '\n'.join(rdf_targetapplications)
-
-    options_dialog = ""
-    if 'preferences_dialog' in features:
-        options_dialog = _apply_data("""
-        <em:optionsURL>chrome://{slug}/content/options.xul</em:optionsURL>
-        """, "install.rdf", data=data)
-
-    about_dialog = ""
-    if 'about_dialog' in features:
-        about_dialog = _apply_data("""
-        <em:aboutURL>chrome://{slug}/content/about.xul</em:aboutURL>
-        """, "install.rdf", data=data)
-
-    install_rdf = _get_resource('install.rdf')
-    return install_rdf.format(
-            id=escape(data['id']),
-            version=escape(data['version']),
-            name=escape(data['name']),
-            description=rdf_description,
-            author_name=escape(data['author_name']),
-            contributors=rdf_contributors,
-            applications=rdf_targetapplications,
-            options_dialog=options_dialog,
-            about_dialog=about_dialog)
+    contributors = (data['contributors'].split('\n') if
+                    data['contributors'] else
+                    [])
+    return template.render(
+            id=data['id'],
+            version=data['version'],
+            name=data['name'],
+            description=data['description'],
+            author_name=data['author_name'],
+            contributors=contributors,
+            targetapplications=data['targetapplications'],
+            preferences_dialog='preferences_dialog' in features,
+            about_dialog='about_dialog' in features,
+            slug=data['slug'])
 
 
 def build_chrome_manifest(data, features, is_firefox=False):
@@ -257,61 +227,13 @@ def build_chrome_manifest(data, features, is_firefox=False):
 def build_ffoverlay_xul(data, features, is_firefox=False):
     """Build the ff-overlay.xul file."""
 
-    extra = []
-    if 'toolbar_button' in features:
-        extra.append(_apply_data("""
-        <toolbarpalette id="BrowserToolbarPalette">
-            <toolbarbutton id="{slug}-toolbar-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
-                label="&{slug}ToolbarButton.label;" tooltiptext="&{slug}ToolbarButton.tooltip;"
-                oncommand="{slug}.onToolbarButtonCommand()"/>
-        </toolbarpalette>""", "ffoverlay.xul", data=data))
+    template = JINJA_ENV.get_template('chrome/content/ff-overlay.xul')
+    return template.render(features=features,
+                           is_firefox=is_firefox,
+                           slug=data['slug'])
 
-    if 'context_menu_command' in features:
-        extra.append(_apply_data("""
-        <popup id="contentAreaContextMenu">
-            <menuitem id="context-{slug}" label="&{slug}Context.label;"
-                accesskey="&{slug}Context.accesskey;"
-                insertafter="context-stop"
-                oncommand="{slug}.onMenuItemCommand(event)"/>
-        </popup>""", "ffoverlay.xul", data=data))
 
-    if 'main_menu_command' in features:
-        extra.append(_apply_data("""
-        <menupopup id="menu_ToolsPopup">
-            <menuitem id="{slug}-hello" label="&{slug}.label;"
-                oncommand="{slug}.onMenuItemCommand(event);"/>
-        </menupopup>
-        """, "ffoverlay.xul", data=data))
-
-    if 'sidebar_support' in features:
-        extra.append(_apply_data("""
-        <menupopup id="viewSidebarMenu">
-            <menuitem observes="viewSidebar_{slug}" />
-        </menupopup>
-        <broadcasterset id="mainBroadcasterSet">
-            <broadcaster id="viewSidebar_{slug}"
-                 label="&{slug}Sidebar.label;"
-                 autoCheck="false"
-                 type="checkbox"
-                 group="sidebar"
-                 sidebarurl="chrome://{slug}/content/ff-sidebar.xul"
-                 sidebartitle="&{slug}Sidebar.label;"
-                 oncommand="toggleSidebar('viewSidebar_{slug}');" />
-        </broadcasterset>
-        """, "ffoverlay.xul", data=data))
-
-    if 'toolbar' in features:
-        extra.append(_apply_data("""
-        <toolbox id="navigator-toolbox">
-            <toolbar class="chromeclass-toolbar" toolbarname="&{slug}Toolbar.name;" customizable="true" id="{slug}-toolbar">
-                <label value="&{slug}Toolbar.label;"/>
-            </toolbar>
-        </toolbox>
-        """, "ffoverlay.xul", data=data))
-
-    data['extra'] = '\n'.join(extra)
-    return _get_resource('chrome/content/ff-overlay.xul', data=data)
-
+JINJA_ENV = Environment(loader=FunctionLoader(_get_resource))
 
 if __name__ == '__main__':
     main()
