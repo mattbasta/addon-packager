@@ -1,13 +1,13 @@
-import nose
+from nose.tools import eq_
+
 import packager.main as p
 
 
 def test_apply_data_empty():
     """Test that applying no data with _apply_data does nothing."""
 
-    nose.tools.eq_(p._apply_data("I {heart} you", "foo.xul"), "I {heart} you")
-    nose.tools.eq_(p._apply_data("I %(heart)s you", "foo.js"),
-                   "I %(heart)s you")
+    eq_(p._apply_data("I {heart} you", "foo.xul"), "I {heart} you")
+    eq_(p._apply_data("I %(heart)s you", "foo.js"), "I %(heart)s you")
 
 
 def test_apply_data():
@@ -16,8 +16,8 @@ def test_apply_data():
     data = {"foo": "test",
             "bar": "mozilla"}
 
-    nose.tools.eq_(p._apply_data("i {foo} at {bar}", "foo.xul", data),
-                   "i test at mozilla")
+    eq_(p._apply_data("i {foo} at {bar}", "foo.xul", data),
+        "i test at mozilla")
 
 
 def test_apply_js_data():
@@ -26,6 +26,5 @@ def test_apply_js_data():
     data = {"foo": "test",
             "bar": "mozilla"}
 
-    nose.tools.eq_(p._apply_data("i %(foo)s at %(bar)s", "foo.js", data),
-                   "i test at mozilla")
-
+    eq_(p._apply_data("i %(foo)s at %(bar)s", "foo.js", data),
+        "i test at mozilla")

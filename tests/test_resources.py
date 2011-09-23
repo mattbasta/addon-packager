@@ -1,5 +1,7 @@
-import nose
 import os
+
+from nose.tools import eq_
+
 import packager.main as p
 
 
@@ -15,8 +17,8 @@ def test_get_resource():
     rpath = p.RESOURCES_PATH
     p.RESOURCES_PATH = "tests/resources"
 
-    nose.tools.eq_(p._get_resource("test.txt"), "{foo}")
-    nose.tools.eq_(p._get_resource("test.txt", {"foo": "bar"}), "bar")
+    eq_(p._get_resource("test.txt"), "{foo}")
+    eq_(p._get_resource("test.txt", {"foo": "bar"}), "bar")
 
     p.RESOURCES_PATH = rpath
 
@@ -38,7 +40,7 @@ def test_write_resource():
     p.RESOURCES_PATH = rpath
 
 
-class MockXPI():
+class MockXPI(object):
     """
     Mock the XPI object in order to make assertions on the data that is saved
     to the output package.
@@ -54,4 +56,3 @@ class MockXPI():
 
     def write_file(self, filename, external_file):
         self.write(filename, external_file)
-

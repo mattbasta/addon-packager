@@ -1,7 +1,6 @@
 import argparse
 import os
 import uuid
-from xml.sax.saxutils import escape
 
 from jinja2 import Environment, FunctionLoader
 
@@ -28,14 +27,16 @@ def main():
     parser.add_argument('--name',
                         required=True,
                         help='The <em:name> value of the add-on.')
+    parser.add_argument('--package-name',
+                        help='The package name of the add-on used within the '
+                             'browser. This should be a short form of its '
+                             'name (e.g., "testextension").')
     parser.add_argument('--description',
-                        required=False,
                         help='A description of your add-on.')
     parser.add_argument('--author-name',
                         required=True,
                         help="The name of the add-on's author.")
     parser.add_argument('--contributors',
-                        required=False,
                         help='A comma-delimited list of contributor names.')
     parser.add_argument('--targetapps',
                         required=True,
@@ -58,19 +59,20 @@ def main():
               'description': args.description,
               'author_name': args.author_name,
               'contributors': '\n'.join(args.contributors.split(',')) if
-                                  args.contributors else '',
+                              args.contributors else '',
               'targetapplications': list(parse_targetapps(args.targetapps)),
               'uuid': uuid.uuid4().hex,
-              'slug': _slugify(args.name)},
+              'slug': args.package_name or args.name},
              xpi_path=args.output_path,
              features=set(args.features.split()) if args.features else set())
 
 
 def _slugify(value):
     """Return a simple slugified value."""
-    value = value.lower().strip()
-    value = value.replace(' ', '_')
-    return ''.join(c for c in value if c.isalnum() or c == '_')
+    value = value or ''
+    value = value.lower().strip().replace(' ', '_').replace('-', '_')
+    slug = ''.join(c for c in value if c.isalnum() or c == '_')
+    return slug or 'addon'
 
 
 def packager(data, xpi_path, features):
@@ -101,6 +103,9 @@ def packager(data, xpi_path, features):
     features should be a set containing string names of each of the features to
         include.
     """
+
+    # I'm not trusting the input, so sanitize the slug here.
+    data['slug'] = _slugify(data.get('slug', ''))
 
     # Instantitate the XPI Manager
     from validator.xpi import XPIManager
@@ -235,6 +240,6 @@ def build_ffoverlay_xul(data, features, is_firefox=False):
 
 JINJA_ENV = Environment(loader=FunctionLoader(_get_resource))
 
+
 if __name__ == '__main__':
     main()
-
