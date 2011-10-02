@@ -4,7 +4,6 @@ import uuid
 
 from jinja2 import Environment, FunctionLoader
 
-
 RESOURCES_PATH = os.path.join(os.path.dirname(__file__), 'resources')
 FIREFOX_GUID = '{ec8030f7-c20a-464f-9b0e-13a3a9e97384}'
 
@@ -192,12 +191,9 @@ def _write_resource(filename, xpi, data=None):
 
 
 def build_installrdf(data, features):
-
     template = JINJA_ENV.get_template('install.rdf')
-
-    contributors = (data['contributors'].split('\n') if
-                    data['contributors'] else
-                    [])
+    contributors = (data['contributors'].split('\n')
+                    if data.get('contributors') else [])
     return template.render(
             id=data['id'],
             version=data['version'],

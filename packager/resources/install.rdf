@@ -2,30 +2,34 @@
 <RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
      xmlns:em="http://www.mozilla.org/2004/em-rdf#">
     <Description about="urn:mozilla:install-manifest">
-
-    <em:type>2</em:type> <!-- 2 : Extension -->
-    <em:id>{{ id }}</em:id>
-    <em:version>{{ version }}</em:version>
-    <em:name>{{ name }}</em:name>
-    {% if description %}<em:description></em:description>{% endif %}
-    <em:author>{{ author_name }}</em:author>
-    {% for contributor in contributors %}
-    <em:contributor>{{ contributor }}</em:contributor>
-    {% endfor %}
-    {% for app in targetapplications %}
-    <em:targetApplication>
-    <Description>
-        <em:id>{{ app["guid"] }}</em:id>
-        <em:minVersion>{{ app["min_ver"] }}</em:minVersion>
-        <em:maxVersion>{{ app["max_ver"] }}</em:maxVersion>
-    </Description>
-    </em:targetApplication>
-    {% endfor %}
-    {% if preferences_dialog %}
-    <em:optionsURL>chrome://{{ slug }}/content/options.xul</em:optionsURL>
-    {% endif %}
-    {% if about_dialog %}
-    <em:aboutURL>chrome://{{ slug }}/content/about.xul</em:aboutURL>
-    {% endif %}
+        <em:type>2</em:type> <!-- 2 : Extension -->
+        <em:id>{{ id }}</em:id>
+        <em:version>{{ version }}</em:version>
+        <em:name>{{ name }}</em:name>
+    {%- if description %}
+        <em:description>{{ description }}</em:description>
+    {%- endif %}
+        <em:creator>{{ author_name }}</em:creator>
+    {%- for contributor in contributors %}
+        <em:contributor>{{ contributor }}</em:contributor>
+    {%- endfor %}
+    {%- for app in targetapplications %}
+        <em:targetApplication>
+            <Description>
+                {%- if app.name %}
+                <!-- {{ app.name }} -->
+                {%- endif %}
+                <em:id>{{ app.guid }}</em:id>
+                <em:minVersion>{{ app.min_ver }}</em:minVersion>
+                <em:maxVersion>{{ app.max_ver }}</em:maxVersion>
+            </Description>
+        </em:targetApplication>
+    {%- endfor %}
+    {%- if preferences_dialog %}
+        <em:optionsURL>chrome://{{ slug }}/content/options.xul</em:optionsURL>
+    {%- endif %}
+    {%- if about_dialog %}
+        <em:aboutURL>chrome://{{ slug }}/content/about.xul</em:aboutURL>
+    {%- endif %}
     </Description>
 </RDF>
