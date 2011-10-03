@@ -66,6 +66,16 @@ def test_installrdf():
         eq_(tag('em_abouturl').text(), path + 'about.xul')
 
 
+def test_default_prefs():
+    data = {'slug': 'my_addon'}
+    fn = 'defaults/preferences/prefs.js'
+    mx = MockXPI(fn)
+    p._write_resource(fn, mx, data)
+    output = p._get_resource(fn, data)
+    expected = open(p._get_path(fn)).read().replace('%(slug)s', data['slug'])
+    eq_(output.strip(), expected.strip())
+
+
 def test_resourcepath():
     """Make sure the resource path is valid."""
     assert os.path.exists(p.RESOURCES_PATH), (
@@ -77,8 +87,9 @@ def test_get_resource():
     rpath = p.RESOURCES_PATH
     p.RESOURCES_PATH = RESOURCES_PATH
 
-    eq_(p._get_resource("test.txt"), "{foo}")
-    eq_(p._get_resource("test.txt", {"foo": "bar"}), "bar")
+    fn = 'test.txt'
+    eq_(p._get_resource(fn), '{foo}')
+    eq_(p._get_resource(fn, {'foo': 'bar'}), 'bar')
 
     p.RESOURCES_PATH = rpath
 
@@ -87,14 +98,15 @@ def test_write_resource():
     """Test that data is properly written to the XPI manager."""
     rpath = p.RESOURCES_PATH
     p.RESOURCES_PATH = RESOURCES_PATH
+    fn = 'test.txt'
 
     # Test that files with associated data are routed through _get_resource.
-    mx = MockXPI("test.txt", "bar")
-    p._write_resource("test.txt", mx, {"foo": "bar"})
+    mx = MockXPI(fn)
+    p._write_resource(fn, mx, {'foo': 'bar'})
 
     # Test that files without associated data are written with write_file.
-    mx = MockXPI("test.txt", p._get_path("test.txt"))
-    p._write_resource("test.txt", mx)
+    mx = MockXPI(fn)
+    p._write_resource(fn, mx)
 
     p.RESOURCES_PATH = rpath
 
@@ -105,13 +117,11 @@ class MockXPI(object):
     to the output package.
     """
 
-    def __init__(self, filename, data):
+    def __init__(self, filename):
         self.filename = filename
-        self.data = data
 
     def write(self, filename, data):
-        assert filename == self.filename
-        assert data == self.data
+        eq_(filename, self.filename)
 
     def write_file(self, filename, external_file):
         self.write(filename, external_file)

@@ -105,6 +105,7 @@ def packager(data, xpi_path, features):
 
     # I'm not trusting the input, so sanitize the slug here.
     data['slug'] = _slugify(data.get('slug', ''))
+    data = escape_all(data)
 
     # Instantitate the XPI Manager
     from validator.xpi import XPIManager
@@ -205,13 +206,7 @@ def escape_all(v):
 
 def build_installrdf(data, features):
     template = JINJA_ENV.get_template('install.rdf')
-
-    fields = ['id', 'version', 'name', 'description', 'author_name',
-              'contributors', 'targetapplications', 'slug']
-    for k in fields:
-        if data.get(k):
-            data[k] = escape_all(data[k])
-
+    data = escape_all(data)
     contributors = (data['contributors'].split('\n')
                     if data.get('contributors') else [])
     return template.render(
