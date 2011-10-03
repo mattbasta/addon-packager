@@ -2,7 +2,8 @@ import argparse
 import os
 import uuid
 
-from jinja2 import Environment, FunctionLoader
+import bleach
+from jinja2 import escape, Environment, FunctionLoader
 
 RESOURCES_PATH = os.path.join(os.path.dirname(__file__), 'resources')
 FIREFOX_GUID = '{ec8030f7-c20a-464f-9b0e-13a3a9e97384}'
@@ -88,10 +89,9 @@ def packager(data, xpi_path, features):
         - contributors : \n-delimited list of contributors
         - targetapplications : Dict in the form of:
             {
-            "min_ver": "3.6",
-            "max_ver": "6.0a1",
-            "guid": "...",
-            "enabled": True # Must be True!
+                "min_ver": "3.6",
+                "max_ver": "6.0a1",
+                "guid": "...",
             }
         - uuid : A UUID value that is unique to this package
         - slug : A slug value based on the name which will be used as a package
@@ -190,8 +190,28 @@ def _write_resource(filename, xpi, data=None):
         xpi.write(filename, _get_resource(filename, data))
 
 
+def escape_all(v):
+    """Recursively escape a string, list, or dictionary."""
+    if isinstance(v, basestring):
+        v = bleach.clean(escape(v))
+    elif isinstance(v, list):
+        for i, lv in enumerate(v):
+            v[i] = escape_all(lv)
+    elif isinstance(v, dict):
+        for k, dv in v.iteritems():
+            v[k] = escape_all(dv)
+    return v
+
+
 def build_installrdf(data, features):
     template = JINJA_ENV.get_template('install.rdf')
+
+    fields = ['id', 'version', 'name', 'description', 'author_name',
+              'contributors', 'targetapplications', 'slug']
+    for k in fields:
+        if data.get(k):
+            data[k] = escape_all(data[k])
+
     contributors = (data['contributors'].split('\n')
                     if data.get('contributors') else [])
     return template.render(
@@ -208,7 +228,6 @@ def build_installrdf(data, features):
 
 
 def build_chrome_manifest(data, features, is_firefox=False):
-
     chrome_manifest = [_get_resource('chrome.manifest', data)]
     if is_firefox:
         chrome_manifest.append(('overlay\t'
@@ -227,7 +246,6 @@ def build_chrome_manifest(data, features, is_firefox=False):
 
 def build_ffoverlay_xul(data, features, is_firefox=False):
     """Build the ff-overlay.xul file."""
-
     template = JINJA_ENV.get_template('chrome/content/ff-overlay.xul')
     return template.render(features=features,
                            is_firefox=is_firefox,

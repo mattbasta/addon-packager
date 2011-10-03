@@ -1,33 +1,40 @@
+import copy
 import os
 
 from nose.tools import eq_
 from pyquery import PyQuery as pq
 
 import packager.main as p
+from packager.main import escape_all
 
 RESOURCES_PATH = os.path.join(os.path.dirname(__file__), 'resources')
 
 
 def test_installrdf():
     data = {
-        'id': 'slap@tickle.me',
-        'version': '1.0',
-        'name': 'Wamp Wamp',
-        'description': 'descrrrrrr',
-        'author_name': 'me',
-        'contributors': 'mr. bean\nmrs. bean',
+        'id': 'slap@tickle.me<script>',
+        'version': '1.0<script>',
+        'name': 'Wamp Wamp<script>',
+        'description': 'descrrrrrr<script>',
+        'author_name': 'me<script>',
+        'contributors': 'mr. bean <mr@bean.com>\nmrs. bean <script>',
         'targetapplications': [
             {
-                'guid': '{ec8030f7-c20a-464f-9b0e-13a3a9e97384}',
-                'min_ver': '3.0',
-                'max_ver': '8.*'
+                'guid': '{ec8030f7-c20a-464f-9b0e-13a3a9e97384}<script>',
+                'min_ver': '3.0<script>',
+                'max_ver': '8.*<script>'
             }
         ],
-        'slug': 'sllllllug'
+        'slug': 'sllllllug<script>'
     }
     features = ('preferences_dialog', 'about_dialog')
 
-    content = p.build_installrdf(data, features).replace('em:', 'em_')
+    # Since `build_installrdf` will sanitize the dict above, send a copy of
+    # `data` so we can compare the escaped text output to the original `data`.
+    content = p.build_installrdf(copy.deepcopy(data), features)
+
+    # PyQuery thinks colons are pseudo-selectors, so we do this.
+    content = content.replace('em:', 'em_')
     doc = pq(content, parser='html_fragments')
 
     tag = lambda t: doc('rdf > description > %s' % t)
