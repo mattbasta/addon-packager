@@ -103,7 +103,7 @@ def packager(data, xpi_path, features):
         include.
     """
 
-    # I'm not trusting the input, so sanitize the slug here.
+    # Sanitize everything.
     data['slug'] = _slugify(data.get('slug', ''))
     data = escape_all(data)
 
@@ -138,12 +138,8 @@ def packager(data, xpi_path, features):
         _write_resource('chrome/content/ff-sidebar.js', xpi)
         _write_resource('chrome/content/ff-sidebar.xul', xpi, data)
 
-    # Multiple features require ff-overlay.xul
-    if any(feature in features for feature in ('toolbar',
-                                               'toolbar_button',
-                                               'context_menu_command',
-                                               'main_menu_command',
-                                               'sidebar_support')):
+    # Include ff-overlay.xul only if Firefox is a targeted application.
+    if is_firefox:
         xpi.write('chrome/content/ff-overlay.xul',
                   build_ffoverlay_xul(data, features, is_firefox))
         _write_resource('chrome/content/ff-overlay.js', xpi, data)
