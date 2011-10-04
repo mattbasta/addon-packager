@@ -1,22 +1,24 @@
+# -*- coding: utf8 -*-
 import copy
 import os
+import tempfile
 
 from mock import Mock, patch
 from nose.tools import eq_
 from pyquery import PyQuery as pq
 
 import packager.main as p
-from packager.main import escape_all, FIREFOX_GUID
+from packager.main import decode_utf8_all, escape_all, FIREFOX_GUID
 
 RESOURCES_PATH = os.path.join(os.path.dirname(__file__), 'resources')
 
 data = {
     'id': 'slap@tickle.me<script>',
     'version': '1.0<script>',
-    'name': 'Wamp Wamp<script>',
+    'name': '注目のコレクション<script>',
     'description': 'descrrrrrr<script>',
     'author_name': 'me<script>',
-    'contributors': 'mr. bean <mr@bean.com>\nmrs. bean <script>',
+    'contributors': '注目のコレクシmr. bean <mr@bean.com>\nmrs. bean <script>',
     'targetapplications': [
         {
             'guid': '%s<script>' % FIREFOX_GUID,
@@ -24,8 +26,10 @@ data = {
             'max_ver': '8.*<script>'
         }
     ],
-    'slug': 'sllllllug<script>'
+    'slug': '注目のコレクションsllllllug<script>'
 }
+
+output = decode_utf8_all(data)
 
 features = ('preferences_dialog', 'about_dialog')
 
@@ -42,17 +46,17 @@ def test_installrdf():
     tag = lambda t: doc('rdf > description > %s' % t)
 
     eq_(tag('em_type').text(), '2')
-    eq_(tag('em_id').text(), data['id'])
-    eq_(tag('em_version').text(), data['version'])
-    eq_(tag('em_name').text(), data['name'])
-    eq_(tag('em_description').text(), data['description'])
-    eq_(tag('em_creator').text(), data['author_name'])
+    eq_(tag('em_id').text(), output['id'])
+    eq_(tag('em_version').text(), output['version'])
+    eq_(tag('em_name').text(), output['name'])
+    eq_(tag('em_description').text(), output['description'])
+    eq_(tag('em_creator').text(), output['author_name'])
 
-    contributors = data['contributors'].split('\n')
+    contributors = output['contributors'].split('\n')
     for c_xml, c_data in zip(tag('em_contributor'), contributors):
         eq_(pq(c_xml).text(), c_data)
 
-    apps = data['targetapplications']
+    apps = output['targetapplications']
     eq_(tag('em_targetapplication').length, len(apps))
     eq_(tag('em_targetapplication description').length, 1)
     for app_xml, app in zip(tag('em_targetapplication description'), apps):
@@ -61,7 +65,7 @@ def test_installrdf():
         eq_(app_tag('em_minversion').text(), app['min_ver'])
         eq_(app_tag('em_maxversion').text(), app['max_ver'])
 
-    path = 'chrome://%s/content/' % data['slug']
+    path = 'chrome://%s/content/' % output['slug']
     if 'preferences_dialog' in features:
         eq_(tag('em_optionsurl').text(), path + 'options.xul')
     if 'about_dialog' in features:
@@ -94,19 +98,24 @@ def test_ff_overlay(_write_resource, write):
     data_ = copy.deepcopy(data)
     data_['targetapplications'][0]['guid'] = FIREFOX_GUID
 
-    fn = 'some_file.zip'
-    p.packager(data_, fn, features)
+    try:
+        with tempfile.NamedTemporaryFile(delete=False) as t:
+            temp_fn = t.name
 
-    # Ensure that `xpi.write(...)` was called with `ff-overlay.xul`.
-    called_name, called_data = write.call_args_list[-1][0]
-    eq_(called_name, 'chrome/content/ff-overlay.xul')
+            p.packager(data_, temp_fn, features)
 
-    # Ensure that `_write_resource(...)` was called with `ff-overlay.js`.
-    called_name, xpi_obj, called_data = _write_resource.call_args_list[-1][0]
-    eq_(called_name, 'chrome/content/ff-overlay.js')
-    eq_(called_data, data_)
+            # Ensure `xpi.write(...)` was called with `ff-overlay.xul`.
+            cld_name, cld_data = write.call_args_list[-1][0]
+            eq_(cld_name, 'chrome/content/ff-overlay.xul')
 
-    os.unlink(fn)
+            # Ensure `_write_resource(...)` was called with `ff-overlay.js`.
+            cld_name, xpi_obj, cld_data = _write_resource.call_args_list[-1][0]
+            eq_(cld_name, 'chrome/content/ff-overlay.js')
+            eq_(cld_data, data_)
+    except:
+        raise
+    finally:
+        os.unlink(temp_fn)
 
 
 @patch('validator.xpi.XPIManager.write')
@@ -116,20 +125,25 @@ def test_non_ff_overlay(_write_resource, write):
     in the package if Firefox isn't one of the target applications.
 
     """
-    fn = 'some_file.zip'
-    p.packager(data, fn, features)
+    try:
+        with tempfile.NamedTemporaryFile(delete=False) as t:
+            temp_fn = t.name
 
-    # Ensure that `xpi.write(...)` was not called with 'ff-overlay.xul'.
-    called_name, called_data = write.call_args_list[-1][0]
-    assert called_name != 'chrome/content/ff-overlay.xul', (
-        'Package incorrectly included ff-overlay.xul for a non-Firefox add-on')
+            p.packager(data, temp_fn, features)
 
-    # Ensure that `_write_resource(...)` was not called with 'ff-overlay.js'.
-    called_name, xpi_obj, called_data = _write_resource.call_args_list[-1][0]
-    assert called_name != 'chrome/content/ff-overlay.js', (
-        'Package incorrectly included ff-overlay.js for a non-Firefox add-on')
+            # Ensure `xpi.write(...)` wasn't called with 'ff-overlay.xul'.
+            cld_name, cld_data = write.call_args_list[-1][0]
+            assert cld_name != 'chrome/content/ff-overlay.xul', (
+                'Package included ff-overlay.xul for a non-Firefox add-on')
 
-    os.unlink(fn)
+            # Ensure `_write_resource(...)` wasn't called with 'ff-overlay.js'.
+            cld_name, xpi_obj, cld_data = _write_resource.call_args_list[-1][0]
+            assert cld_name != 'chrome/content/ff-overlay.js', (
+                'Package included ff-overlay.js for a non-Firefox add-on')
+    except:
+        raise
+    finally:
+        os.unlink(temp_fn)
 
 
 def test_resourcepath():

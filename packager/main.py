@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 import argparse
 import os
 import uuid
@@ -76,11 +77,10 @@ def _slugify(value):
 
 
 def packager(data, xpi_path, features):
-    """
-    Package an add-on from input data. The resulting package will be saved as
-    xpi_path.
+    """Package an add-on from input data. The resulting package will be
+    saved as xpi_path.
 
-    Format:
+    data format:
         - id : <em:id> value
         - version : <em:version>
         - name : <em:name>
@@ -94,20 +94,20 @@ def packager(data, xpi_path, features):
                 "guid": "...",
             }
         - uuid : A UUID value that is unique to this package
-        - slug : A slug value based on the name which will be used as a package
-                 identifier.
+        - slug : A slug value based on the name which will be used as a
+                 package identifier.
 
     xpi_path should be the file path to build the XPI at.
 
-    features should be a set containing string names of each of the features to
-        include.
+    features should be a set containing string names of each of the
+    features to include.
+
     """
 
-    # Sanitize everything.
+    # Sanitize the slug.
     data['slug'] = _slugify(data.get('slug', ''))
-    data = escape_all(data)
 
-    # Instantitate the XPI Manager
+    # Instantiate the XPI Manager.
     from validator.xpi import XPIManager
     xpi = XPIManager(xpi_path, mode='w')
 
@@ -115,6 +115,11 @@ def packager(data, xpi_path, features):
                      app in data['targetapplications'])
 
     xpi.write('install.rdf', build_installrdf(data, features))
+
+    # Sanitize all the input after building `install.rdf` to prevent
+    # doubly escaping the input.
+    data = escape_all(data)
+
     xpi.write('chrome.manifest',
               build_chrome_manifest(data, features, is_firefox))
     _write_resource('defaults/preferences/prefs.js', xpi, data)
@@ -153,11 +158,11 @@ def _get_path(filename):
 
 
 def _get_resource(filename, data=None):
-    """
-    A shortcut to get the contents of a file.
+    """A shortcut to get the contents of a file.
 
-    If data is specified, each of the keys will be replaced (in the format of
-    %key% from the contents of the file) with the value from data.
+    If data is specified, each of the keys will be replaced (in the
+    format of %key% from the file's contents) with the value from data.
+
     """
     resource = open(_get_path(filename))
     output = _apply_data(resource.read(), filename, data)
@@ -166,16 +171,22 @@ def _get_resource(filename, data=None):
     return output.strip()
 
 
+def decode_utf8(s):
+    if s and isinstance(s, basestring) and not isinstance(s, unicode):
+        s = s.decode('utf8')
+    return s
+
+
 def _apply_data(blob, filename, data=None):
     """Apply a dict of variables to the file as a basic template."""
     if data:
         # JS files are incompatible with .format() because of the curly
-        # braces. Instead, named string formatting is used (%(foo)s)
+        # braces. Instead, named string formatting (%(foo)s) is used.
+        blob = decode_utf8(blob)
         if not filename.endswith(('.js', '.css')):
             blob = blob.format(**data)
         else:
             blob = blob % data
-
     return blob
 
 
@@ -190,13 +201,26 @@ def _write_resource(filename, xpi, data=None):
 def escape_all(v):
     """Recursively escape a string, list, or dictionary."""
     if isinstance(v, basestring):
-        v = bleach.clean(escape(v))
+        v = bleach.clean(escape(decode_utf8(v)))
     elif isinstance(v, list):
         for i, lv in enumerate(v):
             v[i] = escape_all(lv)
     elif isinstance(v, dict):
         for k, dv in v.iteritems():
             v[k] = escape_all(dv)
+    return v
+
+
+def decode_utf8_all(v):
+    """Recursively decode a string, list, or dictionary."""
+    if isinstance(v, basestring):
+        v = decode_utf8(v)
+    elif isinstance(v, list):
+        for i, lv in enumerate(v):
+            v[i] = decode_utf8_all(lv)
+    elif isinstance(v, dict):
+        for k, dv in v.iteritems():
+            v[k] = decode_utf8_all(dv)
     return v
 
 
