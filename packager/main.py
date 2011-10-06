@@ -3,7 +3,6 @@ import argparse
 import os
 import uuid
 
-import bleach
 from jinja2 import escape, Environment, FunctionLoader
 
 RESOURCES_PATH = os.path.join(os.path.dirname(__file__), 'resources')
@@ -184,6 +183,7 @@ def _apply_data(blob, filename, data=None):
     if data:
         # JS files are incompatible with .format() because of the curly
         # braces. Instead, named string formatting (%(foo)s) is used.
+        data = escape_all(data)
         blob = decode_utf8(blob)
         if not filename.endswith(('.js', '.css')):
             blob = blob.format(**data)
@@ -203,7 +203,7 @@ def _write_resource(filename, xpi, data=None):
 def escape_all(v):
     """Recursively escape a string, list, or dictionary."""
     if isinstance(v, basestring):
-        v = bleach.clean(escape(decode_utf8(v)))
+        v = escape(decode_utf8(v))
     elif isinstance(v, list):
         for i, lv in enumerate(v):
             v[i] = escape_all(lv)
@@ -228,7 +228,6 @@ def decode_utf8_all(v):
 
 def build_installrdf(data, features):
     template = JINJA_ENV.get_template('install.rdf')
-    data = escape_all(data)
     contributors = (data['contributors'].split('\n')
                     if data.get('contributors') else [])
     return template.render(
@@ -269,7 +268,7 @@ def build_ffoverlay_xul(data, features, is_firefox=False):
                            slug=data['slug'])
 
 
-JINJA_ENV = Environment(loader=FunctionLoader(_get_resource))
+JINJA_ENV = Environment(loader=FunctionLoader(_get_resource), autoescape=True)
 
 
 if __name__ == '__main__':
