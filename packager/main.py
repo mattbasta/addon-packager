@@ -73,7 +73,9 @@ def _slugify(value):
     value = value or ''
     value = value.lower().strip().replace(' ', '_').replace('-', '_')
     slug = ''.join(c for c in value if c.isalnum() or c == '_')
-    return slug or 'addon'
+    if len(slug) < 5:
+       slug = 'addon'
+    return slug[:50]
 
 
 def packager(data, xpi_path, features):
@@ -232,7 +234,7 @@ def build_installrdf(data, features):
     return template.render(
             id=data['id'],
             version=data['version'],
-            name=data['name'],
+            name=data['name'][:50],
             description=data['description'],
             author_name=data['author_name'],
             contributors=contributors,

@@ -7,13 +7,15 @@ from packager.main import _slugify, escape_all
 def test_slugify():
     def check(name, slug):
         eq_(_slugify(name), slug)
-    check(' Jack & Jill like number 1,2,3 and 4 and silly characters -_?%.$!/',
-          'jack__jill_like_number_123_and_4_and_silly_characters___')
+    check(' Jack & Jill like numbers 1,2,3 and silly characters -_?%.$!/',
+          'jack__jill_like_numbers_123_and_silly_characters__')
     check(u"Un \xe9l\xe9phant \xe0 l'or\xe9e du bois",
           u'un_\xe9l\xe9phant_\xe0_lor\xe9e_du_bois')
     check('版本历史记录', 'addon')
-    check('版本历史记录boop版', 'boop')
+    check('版本历史记录booop版', 'booop')
     check('', 'addon')
+    check('____', 'addon')
+    check('x' * 51, 'x' * 50)
 
 
 def test_escape_all():
