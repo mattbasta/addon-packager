@@ -112,19 +112,14 @@ def packager(data, xpi_path, features):
     from validator.xpi import XPIManager
     xpi = XPIManager(xpi_path, mode='w')
 
-    is_firefox = any(app['guid'] == FIREFOX_GUID for
-                     app in data['targetapplications'])
-
     xpi.write('install.rdf', build_installrdf(data, features))
+    xpi.write('chrome.manifest', build_chrome_manifest(data, features))
 
-    # Sanitize all the input after building `install.rdf` to prevent
-    # doubly escaping the input.
+    # Sanitize all the input after building `install.rdf` (which is escaped
+    # when jinja renders the template) to prevent doubly escaping the input.
     data = escape_all(data)
 
-    xpi.write('chrome.manifest',
-              build_chrome_manifest(data, features, is_firefox))
     _write_resource('defaults/preferences/prefs.js', xpi, data)
-    _write_resource('chrome/content/overlay.js', xpi, data)
     _write_resource('chrome/skin/overlay.css', xpi, data)
     _write_resource('chrome/locale/en-US/overlay.dtd', xpi, data)
     _write_resource('chrome/locale/en-US/overlay.properties', xpi, data)
@@ -144,11 +139,9 @@ def packager(data, xpi_path, features):
         _write_resource('chrome/content/ff-sidebar.js', xpi)
         _write_resource('chrome/content/ff-sidebar.xul', xpi, data)
 
-    # Include ff-overlay.xul only if Firefox is a targeted application.
-    if is_firefox:
-        xpi.write('chrome/content/ff-overlay.xul',
-                  build_ffoverlay_xul(data, features, is_firefox))
-        _write_resource('chrome/content/ff-overlay.js', xpi, data)
+    xpi.write('chrome/content/ff-overlay.xul',
+              build_ffoverlay_xul(data, features))
+    _write_resource('chrome/content/ff-overlay.js', xpi, data)
 
     xpi.zf.close()
     return xpi_path
@@ -203,7 +196,7 @@ def _write_resource(filename, xpi, data=None):
 def escape_all(v):
     """Recursively escape a string, list, or dictionary."""
     if isinstance(v, basestring):
-        v = escape(decode_utf8(v))
+        v = unicode(escape(decode_utf8(v)))
     elif isinstance(v, list):
         for i, lv in enumerate(v):
             v[i] = escape_all(lv)
@@ -243,29 +236,27 @@ def build_installrdf(data, features):
             slug=data['slug'])
 
 
-def build_chrome_manifest(data, features, is_firefox=False):
+def build_chrome_manifest(data, features):
     chrome_manifest = [_get_resource('chrome.manifest', data)]
-    if is_firefox:
-        chrome_manifest.append(('overlay\t'
-                                'chrome://browser/content/browser.xul\t'
-                                'chrome://%s/content/ff-overlay.xul') %
-                                    data['slug'])
+
+    line = ('overlay',
+            'chrome://browser/content/browser.xul',
+            'chrome://%s/content/ff-overlay.xul' % data['slug'])
+    chrome_manifest.append('\t'.join(line))
 
     if 'toolbar_button' in features:
-        chrome_manifest.append(
-                ('style\t'
-                 'chrome://global/content/customizeToolbar.xul\t'
-                 'chrome://%s/skin/overlay.css') % data['slug'])
+        line = ('style',
+                'chrome://global/content/customizeToolbar.xul',
+                'chrome://%s/skin/overlay.css' % data['slug'])
+        chrome_manifest.append('\t'.join(line))
 
     return '\n'.join(chrome_manifest)
 
 
-def build_ffoverlay_xul(data, features, is_firefox=False):
+def build_ffoverlay_xul(data, features):
     """Build the ff-overlay.xul file."""
     template = JINJA_ENV.get_template('chrome/content/ff-overlay.xul')
-    return template.render(features=features,
-                           is_firefox=is_firefox,
-                           slug=data['slug'])
+    return template.render(features=features, slug=data['slug'])
 
 
 JINJA_ENV = Environment(loader=FunctionLoader(_get_resource), autoescape=True)

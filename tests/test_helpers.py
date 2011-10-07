@@ -24,9 +24,9 @@ def test_escape_all():
 
     # Test strings.
     check('<a href="http://gkoberger.net/">spam</a>',
-          '&lt;a href="http://gkoberger.net/"&gt;spam&lt;/a&gt;')
-    check('Just wanted to say <script>alert("hey, brother")</div>',
-          'Just wanted to say &lt;script&gt;alert("hey, brother")&lt;/div&gt;')
+          '&lt;a href=&#34;http://gkoberger.net/&#34;&gt;spam&lt;/a&gt;')
+    check('Hey bro <script>alert("hey, brother")</div>',
+          'Hey bro &lt;script&gt;alert(&#34;hey, brother&#34;)&lt;/div&gt;')
 
     # Test lists.
     bad = ['x', '<y>', '<z>']

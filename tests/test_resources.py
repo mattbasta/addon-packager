@@ -8,7 +8,7 @@ from nose.tools import eq_
 from pyquery import PyQuery as pq
 
 import packager.main as p
-from packager.main import decode_utf8_all, escape_all, FIREFOX_GUID
+from packager.main import decode_utf8_all, FIREFOX_GUID
 
 RESOURCES_PATH = os.path.join(os.path.dirname(__file__), 'resources')
 
@@ -24,6 +24,11 @@ data = {
             'guid': '%s<script>' % FIREFOX_GUID,
             'min_ver': '3.0<script>',
             'max_ver': '8.*<script>'
+        },
+        {
+            'guid': FIREFOX_GUID,
+            'min_ver': '6.0<script>',
+            'max_ver': '10.*<script>'
         }
     ],
     'slug': '注目のコレクションsllllllug<script>'
@@ -58,7 +63,7 @@ def test_installrdf():
 
     apps = output['targetapplications']
     eq_(tag('em_targetapplication').length, len(apps))
-    eq_(tag('em_targetapplication description').length, 1)
+    eq_(tag('em_targetapplication description').length, len(apps))
     for app_xml, app in zip(tag('em_targetapplication description'), apps):
         app_tag = pq(app_xml)
         eq_(app_tag('em_id').text(), app['guid'])
@@ -98,8 +103,8 @@ def test_ff_overlay(_write_resource, write):
     data_ = copy.deepcopy(data)
     data_['targetapplications'][0]['guid'] = FIREFOX_GUID
 
-    try:
-        with tempfile.NamedTemporaryFile(delete=False) as t:
+    with tempfile.NamedTemporaryFile(delete=False) as t:
+        try:
             temp_fn = t.name
 
             p.packager(data_, temp_fn, features)
@@ -112,38 +117,8 @@ def test_ff_overlay(_write_resource, write):
             cld_name, xpi_obj, cld_data = _write_resource.call_args_list[-1][0]
             eq_(cld_name, 'chrome/content/ff-overlay.js')
             eq_(cld_data, data_)
-    except:
-        raise
-    finally:
-        os.unlink(temp_fn)
-
-
-@patch('validator.xpi.XPIManager.write')
-@patch('packager.main._write_resource')
-def test_non_ff_overlay(_write_resource, write):
-    """The files `ff-overlay.xul` and `ff-overlay.js` should not appear
-    in the package if Firefox isn't one of the target applications.
-
-    """
-    try:
-        with tempfile.NamedTemporaryFile(delete=False) as t:
-            temp_fn = t.name
-
-            p.packager(data, temp_fn, features)
-
-            # Ensure `xpi.write(...)` wasn't called with 'ff-overlay.xul'.
-            cld_name, cld_data = write.call_args_list[-1][0]
-            assert cld_name != 'chrome/content/ff-overlay.xul', (
-                'Package included ff-overlay.xul for a non-Firefox add-on')
-
-            # Ensure `_write_resource(...)` wasn't called with 'ff-overlay.js'.
-            cld_name, xpi_obj, cld_data = _write_resource.call_args_list[-1][0]
-            assert cld_name != 'chrome/content/ff-overlay.js', (
-                'Package included ff-overlay.js for a non-Firefox add-on')
-    except:
-        raise
-    finally:
-        os.unlink(temp_fn)
+        finally:
+            os.unlink(temp_fn)
 
 
 def test_resourcepath():
