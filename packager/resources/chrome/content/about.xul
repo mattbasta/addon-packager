@@ -7,11 +7,11 @@
 <dialog title="&about; {name}" orient="vertical" autostretch="always" onload="sizeToContent()" buttons="accept" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
   <groupbox align="center" orient="horizontal">
     <vbox>
-      <text value="{name}" style="font-weight: bold; font-size: x-large;"/>
-      <text value="&version; 1.0"/>
+      <label value="{name}" style="font-weight: bold; font-size: x-large;"/>
+      <label value="&version; 1.0"/>
       <separator class="thin"/>
-      <text value="&createdBy;" style="font-weight: bold;"/>
-      <text value="{author_name}"/>
+      <label value="&createdBy;" style="font-weight: bold;"/>
+      <label value="{author_name}"/>
       <separator class="thin"/>
     </vbox>
   </groupbox>
