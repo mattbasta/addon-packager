@@ -8,4 +8,4 @@ pref("extensions.%(slug)s.intpref", 0);
 pref("extensions.%(slug)s.stringpref", "A string");
 
 // https://developer.mozilla.org/en/Localizing_extension_descriptions
-pref("extensions.%(slug)s.description", "chrome://%(slug)s/locale/overlay.properties");
+pref("extensions.%(id)s.description", "chrome://%(slug)s/locale/overlay.properties");
