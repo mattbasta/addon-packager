@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='moz-addon-packager',
-    version='1.0',
+    version='1.0.1',
     description='Creates addons for Mozilla products.',
     long_description=open('README').read(),
     author='Matt Basta',
